@@ -38,13 +38,11 @@ class SpecialRequestWikiQueue extends SpecialPage {
 			}
 		} elseif ( $type === 'sitename' ) {
 			$searchConds = array( 'cw_sitename' => $search );
-		} elseif ( $type === 'dbname' ) {
-			$searchConds = array( 'cw_dbname' => $search );
 		} elseif ( $type === 'status' ) {
 			$searchConds = array( 'cw_status' => $search );
 		}
 
-		$selecttypeform = "<select name=\"rwqSearchtype\"><option value=\"requester\">requester</option><option value=\"sitename\">sitename</option><option value=\"status\">status</option><option value=\"dbname\">dbname</option></select>";
+		$selecttypeform = "<select name=\"rwqSearchtype\"><option value=\"requester\">requester</option><option value=\"sitename\">sitename</option><option value=\"status\">status</option></select>";
 
 		$form = Xml::openElement( 'form', array( 'action' => $localpage, 'method' => 'get' ) );
                 $form .= '<fieldset><legend>' . $this->msg( 'requestwikiqueue-searchrequest' )->escaped() . '</legend>';
@@ -110,7 +108,7 @@ class SpecialRequestWikiQueue extends SpecialPage {
 		$user = User::newFromId( $res->cw_user );
 
 		$createwikiparams = array(
-			'cwRequester' => $user->getName(),
+			'cwFounder' => $user->getName(),
 			'cwLanguage' => $res->cw_language,
 			'cwSitename' => $res->cw_sitename
 		);
@@ -171,7 +169,7 @@ class SpecialRequestWikiQueue extends SpecialPage {
 		if ( $this->getUser()->isAllowed( 'createwiki' ) ) {
 			$form .= '<tr><th colspan="' . $columnamount . '">' . $this->msg( 'requestwikiqueue-request-status' )->escaped() . '</th></tr>';
 			$form .= '<tr><td colspan="' . $columnamount . '">' . $this->msg( 'requestwikiqueue-request-label-comment' )->escaped() . ' ' . Xml::input( 'rwqStatusComment', 45, '', array( 'required' => '' ) ) . ' ';
-			$form .= $this->msg( 'requestwikiqueue-request-label-status-colon' )->escaped() . ' ' . Xml::radioLabel( $this->msg( 'requestwikiqueue-request-label-inreview' )->escaped(), 'rwqStatus', 'inreview', '', true ) . Xml::radioLabel( $this->msg( 'requestwikiqueue-request-label-approved' )->escaped(), 'rwqStatus', 'approved', '', false ) . Xml::radioLabel( $this->msg( 'requestwikiqueue-request-label-declined' )->escaped(), 'rwqStatus', 'declined', '', false ) . ' ';
+			$form .= $this->msg( 'requestwikiqueue-request-label-status-colon' )->escaped() . ' ' . Xml::radioLabel( 'In Review', 'rwqStatus', 'inreview', '', true ) . Xml::radioLabel( 'Approved', 'rwqStatus', 'approved', '', false ) . Xml::radioLabel( 'Declined', 'rwqStatus', 'declined', '', false ) . ' ';
 			$form .= Xml::submitButton( 'Submit' ) . '</td></tr>';
 
 		}
@@ -210,9 +208,5 @@ class SpecialRequestWikiQueue extends SpecialPage {
 		$this->getRequest()->response()->header( 'Refresh: 1;' );
 
 		return true;
-	}
-
-	protected function getGroupName() {
-		return 'wikimanage';
 	}
 }

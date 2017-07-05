@@ -47,7 +47,7 @@ class SpecialCreateWiki extends FormSpecialPage {
 		foreach ( $languages as $code => $name ) {
 			$options["$code - $name"] = $code;
 		}
-
+		
 		$formDescriptor['language'] = array(
 			'type' => 'select',
 			'options' => $options,
@@ -74,14 +74,16 @@ class SpecialCreateWiki extends FormSpecialPage {
 	}
 
 	public function onSubmit( array $formData ) {
-		global $IP, $wgCreateWikiSQLfiles, $wgDBname;
-
+		global $IP, $wgCreateWikiSQLfiles;
+		
 		$DBname = $formData['dbname'];
 		$requesterName = $formData['requester'];
 		$siteName = $formData['sitename'];
 		$language = $formData['language'];
 		$private = $formData['private'];
 		$reason = $formData['reason'];
+
+		$dbw = wfGetDB( DB_MASTER );
 
 		$farmerLogEntry = new ManualLogEntry( 'farmer', 'createwiki' );
 		$farmerLogEntry->setPerformer( $this->getUser() );
@@ -95,7 +97,6 @@ class SpecialCreateWiki extends FormSpecialPage {
 		$farmerLogID = $farmerLogEntry->insert();
 		$farmerLogEntry->publish( $farmerLogID );
 
-		$dbw = wfGetDB( DB_MASTER );
 		$dbw->query( 'SET storage_engine=InnoDB;' );
 		$dbw->query( 'CREATE DATABASE ' . $dbw->addIdentifierQuotes( $DBname ) . ';' );
 
@@ -113,8 +114,6 @@ class SpecialCreateWiki extends FormSpecialPage {
 
 		$this->createMainPage( $language );
 
-		$dbw->selectDB( $wgDBname ); // revert back to main wiki
-
 		$shcreateaccount = exec( "/usr/bin/php " .
 			"$IP/extensions/CentralAuth/maintenance/createLocalAccount.php " . wfEscapeShellArg( $requesterName ) . " --wiki " . wfEscapeShellArg( $DBname ) );
 
@@ -126,13 +125,8 @@ class SpecialCreateWiki extends FormSpecialPage {
 		$shpromoteaccount = exec( "/usr/bin/php " .
 			"$IP/maintenance/createAndPromote.php " . wfEscapeShellArg( $requesterName ) . " --bureaucrat --sysop --force --wiki " . wfEscapeShellArg( $DBname ) );
 
-		$notifyEmail = MailAddress::newFromUser( User::newFromName( $requesterName ) );
-		$this->sendCreationEmail( $notifyEmail, $siteName );
-
-		$this->notifyRequester( $requesterName, $siteName, $language );
-
 		$this->getOutput()->addHTML( '<div class="successbox">' . wfMessage( 'createwiki-success' )->escaped() . '</div>' );
-
+		
 		return true;
 	}
 
@@ -189,7 +183,7 @@ class SpecialCreateWiki extends FormSpecialPage {
 		if ( is_null( $requesterName ) ) {
 			return true;
 		}
-
+		
 		$user = User::newFromName( $requesterName );
 
 		if ( !$user->getId() ) {
@@ -246,43 +240,8 @@ class SpecialCreateWiki extends FormSpecialPage {
 
 		return true;
 	}
-
+	
 	public function getDisplayFormat() {
 		return 'ooui';
         }
-
-	protected function getGroupName() {
-		return 'wikimanage';
-	}
-
-	protected function sendCreationEmail( $notifyEmail, $siteName ) {
-		global $wgPasswordSender;
-
-		$from = new MailAddress( $wgPasswordSender, 'Miraheze' );
-		$subject = wfMessage( 'createwiki-email-subject', $siteName )->inContentLanguage()->text();
-		$body = wfMessage( 'createwiki-email-body' )->inContentLanguage()->text();
-
-		return UserMailer::send( $notifyEmail, $from, $subject, $body );
-	}
-	
-	public function notifyReqester( $requester, $siteName, $lang ) {
-		$title = Title::newFromText( 'User talk:' . $requester );
-		$article = WikiPage::factory( $title );
-		$site = substr($siteName, 0, strlen($siteName) - 4);
-		
-		$text = '';
-		if( $article->exists() ) {
-			$text = $article->getContent()->getNativeData() . '\n\n';
-		}
-		
-		$wikitext = new WikitextContent( $text . wfMessage( 'createwiki-notify', $site )->inLanguage( $lang )->plain() );
-		$status = $article->doEditContent(
-			$wikitext,
-			'Notifying user of creation of ' . $siteName,
-			0, // Should not need to set flags
-			null,
-			$this->getUser()
-		);
-		return $status->isGood();
-	}
 }

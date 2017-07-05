@@ -63,7 +63,6 @@ class SpecialRequestWiki extends SpecialPage {
 		$this->getOutput()->addHTML( $form );
 	}
 
-	
 	function handleRequestWikiFormInput() {
 		global $wgRequest;
 
@@ -81,18 +80,6 @@ class SpecialRequestWiki extends SpecialPage {
 
 		if ( $this->errors ) {
 			$out->addHTML( '<div class="errorbox">' . $this->msg( 'requestwiki-error-notallfilledin' )->escaped() . '</div>' );
-			return false;
-		}
-		
-		// Limit number of requests that can be made
-		$session = $this->getRequest()->getSession();
-		if ($session->get('createwiki_last_submit', null) == null) {
-			$session->set('createwiki_last_submit', time());
-		} elseif (time()-$session->get('createwiki_last_submit', null) < 3600) {
-			$out->addHTML( '<div class="errorbox">' . $this->msg( 'requestwiki-error-patient' )->escaped() . '</div>' );
-			return false;
-		} else {
-			$out->addHTML( '<div class="errorbox">' . $this->msg( 'requestwiki-error-notime' )->escaped() . '</div>' );
 			return false;
 		}
 
@@ -120,11 +107,6 @@ class SpecialRequestWiki extends SpecialPage {
 			return false;
 		}
 
-		if ( !$this->isValidComment( $comment ) ) {
-                        $out->addWikiMsg( 'requestwiki-error-invalidcomment' );
-                        return false;
-                }
-		
 		// Make the subdomain a dbname
 		if ( $subdomain ) {
 			if ( !ctype_alnum( $subdomain ) ) {
@@ -172,29 +154,5 @@ class SpecialRequestWiki extends SpecialPage {
                 $farmerLogEntry->publish( $farmerLogID );
 
 		$this->getOutput()->addHTML( '<div class="successbox">' . $this->msg( 'requestwiki-success', $idlink )->plain() . '</div>' );
-	}
-	
-	public function isValidComment( $comment ) {
-		$title = Title::newFromText( 'MediaWiki:CreateWiki-blacklist' );
-		$wikiPageContent = WikiPage::factory( $title )->getContent( Revision::RAW );
-		$content = ContentHandler::getContentText( $wikiPageContent );
-
-		$regexes = explode( PHP_EOL, $content );
-		unset( $regexes[0] );
-
-		foreach ( $regexes as $regex ) {
-			preg_match( "/" . $regex . "/i", $comment, $output );
-
-			if ( is_array( $output ) && count( $output ) >= 1 ) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	
-	protected function getGroupName() {
-		return 'wikimanage';
 	}
 }
