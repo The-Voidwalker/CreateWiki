@@ -73,12 +73,13 @@ class RequestWikiQueuePager extends TablePager {
 		$user = $this->getUser();
 		$visibility = 0;
 
-		if( $user->isAllowed( 'suppressrevision' ) )
+		if( $user->isAllowed( 'suppressrevision' ) ) {
 			$visibility = 3;
-		elseif( $user->isAllowed( 'delete' ) )
+		} elseif( $user->isAllowed( 'delete' ) ) {
 			$visibility = 2;
-		elseif( $user->isAllowed( 'createwiki' ) )
+		} elseif( $user->isAllowed( 'createwiki' ) ) {
 			$visiblity = 1;
+		}
 
 		$info = [
 			'tables' => [
